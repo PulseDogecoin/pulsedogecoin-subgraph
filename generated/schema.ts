@@ -137,6 +137,24 @@ export class _Claim extends Entity {
     this.set("to", Value.fromBytes(value));
   }
 
+  get currentDay(): BigInt {
+    let value = this.get("currentDay");
+    return value!.toBigInt();
+  }
+
+  set currentDay(value: BigInt) {
+    this.set("currentDay", Value.fromBigInt(value));
+  }
+
+  get timestamp(): BigInt {
+    let value = this.get("timestamp");
+    return value!.toBigInt();
+  }
+
+  set timestamp(value: BigInt) {
+    this.set("timestamp", Value.fromBigInt(value));
+  }
+
   get amount(): BigInt {
     let value = this.get("amount");
     return value!.toBigInt();

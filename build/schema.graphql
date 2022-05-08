@@ -10,7 +10,9 @@ type _GlobalInfo @entity {
 
 type _Claim @entity{
   id: ID!
-  to: Bytes! 
+  to: Bytes!
+  currentDay:BigInt!
+  timestamp:BigInt!
   amount: BigInt!
 }
 

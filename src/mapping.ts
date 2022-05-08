@@ -27,17 +27,9 @@ function schemaLimiter(metaCountName: string, limiter: BigInt, eventBlockNumber:
   return validSave;
 }
 
-function handleGlobalInfo(eventTimestamp: BigInt, eventBlockNumber: BigInt, transactionHash: Bytes, bypassLimit: boolean):void{
-  
-  if(bypassLimit == false){  
-    let limiter = BigInt.fromI32(240);
-    let withinLimit = schemaLimiter("GlobalInfoLatestBlock", limiter, eventBlockNumber);
-    if(withinLimit == false){
-      return;
-    }
-  }
+export function handleGlobalInfo(block: ethereum.Block):void{
 
-  let id = eventTimestamp.toString() + transactionHash.toHexString(); 
+  let id = block.timestamp.toString() + block.number.toString(); 
   let _globalInfo = _GlobalInfo.load(id);
 
   if (_globalInfo == null) {
@@ -52,9 +44,8 @@ function handleGlobalInfo(eventTimestamp: BigInt, eventBlockNumber: BigInt, tran
   _globalInfo.totalSupply = plsdContract.totalSupply();
   _globalInfo.numberOfClaims = plsdContract.numberOfClaims();
   _globalInfo.currentDay = plsdContract.currentDay();
-  _globalInfo.timestamp = eventTimestamp;
-  _globalInfo.blocknumber = eventBlockNumber; 
-  _globalInfo.transactionHash = transactionHash;
+  _globalInfo.timestamp = block.timestamp;
+  _globalInfo.blocknumber = block.number;
 
   _globalInfo.save();
 }
@@ -80,21 +71,21 @@ function parseInput(input: Bytes): string {
   return result;
 }
 
-export function handleBlock(block: ethereum.Block):void{
-  handleGlobalInfo(block.timestamp, block.number, block.hash, false);
-}
-
 export function handleApproval(event: Approval): void {}
 
 export function handleClaim(event: Claim): void {
   let id = event.params.to.toHexString();
   let _claim = _Claim.load(event.params.to.toHexString());
 
+  let plsdContract = PulseDogecoin.bind(Address.fromString("0x34F0915a5f15a66Eba86F6a58bE1A471FB7836A7"));
+
   if (_claim == null) {
     _claim = new _Claim(id);
   }
   _claim.to = event.params.to;
   _claim.amount = event.params.amount;
+  _claim.currentDay = plsdContract.currentDay();
+  _claim.timestamp = event.block.timestamp;
   
   _claim.save();
 }
