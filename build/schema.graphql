@@ -2,16 +2,17 @@ type _GlobalInfo @entity {
   id: ID!
   totalSupply:BigInt!
   numberOfClaims:BigInt!
-  currentDay:BigInt!
+  plsdDay:BigInt!
   timestamp:BigInt!
   blocknumber:BigInt!
+  globalInfoCount: BigDecimal!
   transactionHash:Bytes!
 } 
 
 type _Claim @entity{
   id: ID!
   to: Bytes!
-  currentDay:BigInt!
+  plsdDay:BigInt!
   timestamp:BigInt!
   amount: BigInt!
 }
@@ -21,7 +22,7 @@ type _Transfer @entity{
   from: Bytes!
   to: Bytes!
   value: BigInt!
-  currentDay:BigInt!
+  plsdDay:BigInt!
   timestamp:BigInt!
   transactionHash:Bytes!
   numeralIndex:BigInt!

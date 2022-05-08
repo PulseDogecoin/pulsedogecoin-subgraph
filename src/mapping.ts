@@ -27,9 +27,17 @@ function schemaLimiter(metaCountName: string, limiter: BigInt, eventBlockNumber:
   return validSave;
 }
 
-export function handleGlobalInfo(block: ethereum.Block):void{
+function handleGlobalInfo(eventTimestamp: BigInt, eventBlockNumber: BigInt, transactionHash: Bytes, bypassLimit: boolean):void{
 
-  let id = block.timestamp.toString() + block.number.toString(); 
+  if(bypassLimit == false){  
+    let limiter = BigInt.fromI32(240);
+    let withinLimit = schemaLimiter("GlobalInfoLatestBlock", limiter, eventBlockNumber);
+    if(withinLimit == false){
+      return;
+    }
+  }
+
+  let id = eventTimestamp.toString() + transactionHash.toHexString(); 
   let _globalInfo = _GlobalInfo.load(id);
 
   if (_globalInfo == null) {
@@ -40,19 +48,51 @@ export function handleGlobalInfo(block: ethereum.Block):void{
   }
 
   let plsdContract = PulseDogecoin.bind(Address.fromString("0x34F0915a5f15a66Eba86F6a58bE1A471FB7836A7"));
+  
+  let one = BigInt.fromI32(1);
+  let currentDay = plsdContract.currentDay(); 
+  let _currentDay = currentDay.plus(one);
 
   _globalInfo.totalSupply = plsdContract.totalSupply();
   _globalInfo.numberOfClaims = plsdContract.numberOfClaims();
-  _globalInfo.currentDay = plsdContract.currentDay();
-  _globalInfo.timestamp = block.timestamp;
-  _globalInfo.blocknumber = block.number;
+  _globalInfo.plsdDay = _currentDay;
+  _globalInfo.timestamp = eventTimestamp;
+  _globalInfo.blocknumber = eventBlockNumber;
+  _globalInfo.transactionHash = transactionHash;
 
+  let zero = BigInt.fromI32(0); 
+  let _GlobalInfoMetaCount = _MetaCounts.load("GlobalInfo"); 
+  if (_GlobalInfoMetaCount == null) {
+    _GlobalInfoMetaCount = new _MetaCounts("GlobalInfo"); 
+    _GlobalInfoMetaCount.count = zero;
+  } 
+
+  let _GlobalInfoDailyMetaCount = _MetaCounts.load("GlobalInfoDaily"); 
+  if (_GlobalInfoDailyMetaCount == null) { 
+    _GlobalInfoDailyMetaCount = new _MetaCounts("GlobalInfoDaily"); 
+    _GlobalInfoDailyMetaCount.count = _currentDay
+    
+  } 
+  if(_currentDay > _GlobalInfoDailyMetaCount.count){
+    _GlobalInfoMetaCount.count = zero
+  }
+  _GlobalInfoDailyMetaCount.count = _currentDay
+
+  _GlobalInfoMetaCount.count = _GlobalInfoMetaCount.count.plus(one);
+
+  let countString = _GlobalInfoMetaCount.count.toString();
+  let metaIdBigDecimal = BigDecimal.fromString(countString);
+  _globalInfo.globalInfoCount = metaIdBigDecimal;
+  
+  _GlobalInfoDailyMetaCount.save();
+  _GlobalInfoMetaCount.save();
   _globalInfo.save();
 }
 
 function parseInput(input: Bytes): string {
-  //0x3d13f874 - freeClaim
-  //0x5f575529 - uniswapV3
+  //0x3d13f874 - FreeClaim
+  //0x5f575529 - UniswapV3
+  //0x13d79a0b - CoWProtocol
 
   var result = ""; 
   let temp = input.toHexString();
@@ -62,81 +102,16 @@ function parseInput(input: Bytes): string {
   //log.debug('The tempSlice: {}, the temp: {}', [tempSlice, temp]);
 
   if(tempSlice == "0x3d13f874"){
-    result = "freeClaim"
+    result = "FreeClaim"
   }
   if(tempSlice == "0x5f575529"){
-    result = "uniswapV3"
+    result = "UniswapV3"
+  }
+  if(tempSlice == "0x13d79a0b"){
+    result = "CoWProtocol"
   }
 
   return result;
-}
-
-export function handleApproval(event: Approval): void {}
-
-export function handleClaim(event: Claim): void {
-  let id = event.params.to.toHexString();
-  let _claim = _Claim.load(event.params.to.toHexString());
-
-  let plsdContract = PulseDogecoin.bind(Address.fromString("0x34F0915a5f15a66Eba86F6a58bE1A471FB7836A7"));
-
-  if (_claim == null) {
-    _claim = new _Claim(id);
-  }
-  _claim.to = event.params.to;
-  _claim.amount = event.params.amount;
-  _claim.currentDay = plsdContract.currentDay();
-  _claim.timestamp = event.block.timestamp;
-  
-  _claim.save();
-}
-
-export function handleTransfer(event: Transfer): void { 
-  let _metaCount = _MetaCounts.load("Transfer");
-  if (_metaCount == null) {
-    _metaCount = new _MetaCounts("Transfer");
-    let zero = BigInt.fromI32(0);
-    _metaCount.count = zero;
-  }
-  let one = BigInt.fromI32(1);
-  _metaCount.count = _metaCount.count.plus(one);
-  _metaCount.save();
-
-  let id = _metaCount.count.toString() + event.transaction.hash.toHexString();
-
-  let _transfer = _Transfer.load(id);
-
-  if (_transfer == null) {
-    _transfer = new _Transfer(id);
-  }
-
-  let plsdContract = PulseDogecoin.bind(Address.fromString("0x34F0915a5f15a66Eba86F6a58bE1A471FB7836A7"));
-
-  _transfer.numeralIndex = _metaCount.count;
-  _transfer.transactionHash = event.transaction.hash;
-  _transfer.gasLimit = event.transaction.gasLimit;
-  _transfer.gasPrice = event.transaction.gasPrice;
-
-  _transfer.input = event.transaction.input.toHexString();
-  let methodId = parseInput(event.transaction.input);
-  if(methodId != ""){
-    _transfer.methodId =  methodId;
-  }
-  else{
-    _transfer.methodId =  null; 
-  }
-  _transfer.from = event.params.from; 
-  _transfer.to = event.params.to; 
-  _transfer.value = event.params.value;
-  _transfer.currentDay = plsdContract.currentDay();
-  _transfer.timestamp = event.block.timestamp;
-  _transfer.save();
- 
-  ///////TokenHolder from Update/////// 
-  updateTokenHolder(event.params.from, event.params.value.toString(), '-', event.block.timestamp, event.block.number);
-
-  ///////TokenHolder to Update///////
-  updateTokenHolder(event.params.to, event.params.value.toString(), '+', event.block.timestamp, event.block.number);
-
 }
 
 function updateTokenHolder(address:Address, value: string, operator:string, eventTimestamp:BigInt, eventBlockNumber:BigInt): void {
@@ -198,4 +173,76 @@ function updateTokenHolder(address:Address, value: string, operator:string, even
   _tokenHolder.tokenBalance = newTokenBalance;
   
   _tokenHolder.save(); 
+}
+
+export function handleBlock(block: ethereum.Block):void{
+  handleGlobalInfo(block.timestamp, block.number, block.hash, false);
+}
+
+export function handleApproval(event: Approval): void {}
+
+export function handleClaim(event: Claim): void {
+  let id = event.params.to.toHexString();
+  let _claim = _Claim.load(event.params.to.toHexString());
+
+  let plsdContract = PulseDogecoin.bind(Address.fromString("0x34F0915a5f15a66Eba86F6a58bE1A471FB7836A7"));
+
+  if (_claim == null) {
+    _claim = new _Claim(id);
+  }
+  _claim.to = event.params.to;
+  _claim.amount = event.params.amount;
+  _claim.plsdDay = plsdContract.currentDay();
+  _claim.timestamp = event.block.timestamp;
+  
+  _claim.save();
+}
+
+export function handleTransfer(event: Transfer): void { 
+  let _metaCount = _MetaCounts.load("Transfer");
+  if (_metaCount == null) {
+    _metaCount = new _MetaCounts("Transfer");
+    let zero = BigInt.fromI32(0);
+    _metaCount.count = zero;
+  }
+  let one = BigInt.fromI32(1);
+  _metaCount.count = _metaCount.count.plus(one);
+  _metaCount.save();
+
+  let id = _metaCount.count.toString() + event.transaction.hash.toHexString();
+
+  let _transfer = _Transfer.load(id);
+
+  if (_transfer == null) {
+    _transfer = new _Transfer(id);
+  }
+
+  let plsdContract = PulseDogecoin.bind(Address.fromString("0x34F0915a5f15a66Eba86F6a58bE1A471FB7836A7"));
+
+  _transfer.numeralIndex = _metaCount.count;
+  _transfer.transactionHash = event.transaction.hash;
+  _transfer.gasLimit = event.transaction.gasLimit;
+  _transfer.gasPrice = event.transaction.gasPrice;
+
+  _transfer.input = event.transaction.input.toHexString();
+  let methodId = parseInput(event.transaction.input);
+  if(methodId != ""){
+    _transfer.methodId =  methodId;
+  }
+  else{
+    _transfer.methodId =  null; 
+  }
+  _transfer.from = event.params.from; 
+  _transfer.to = event.params.to; 
+  _transfer.value = event.params.value;
+  _transfer.plsdDay = plsdContract.currentDay();
+  _transfer.timestamp = event.block.timestamp;
+  _transfer.save();
+ 
+  ///////TokenHolder from Update/////// 
+  updateTokenHolder(event.params.from, event.params.value.toString(), '-', event.block.timestamp, event.block.number);
+
+  ///////TokenHolder to Update///////
+  updateTokenHolder(event.params.to, event.params.value.toString(), '+', event.block.timestamp, event.block.number);
+
 }

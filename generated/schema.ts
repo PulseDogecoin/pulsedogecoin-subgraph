@@ -60,13 +60,13 @@ export class _GlobalInfo extends Entity {
     this.set("numberOfClaims", Value.fromBigInt(value));
   }
 
-  get currentDay(): BigInt {
-    let value = this.get("currentDay");
+  get plsdDay(): BigInt {
+    let value = this.get("plsdDay");
     return value!.toBigInt();
   }
 
-  set currentDay(value: BigInt) {
-    this.set("currentDay", Value.fromBigInt(value));
+  set plsdDay(value: BigInt) {
+    this.set("plsdDay", Value.fromBigInt(value));
   }
 
   get timestamp(): BigInt {
@@ -85,6 +85,15 @@ export class _GlobalInfo extends Entity {
 
   set blocknumber(value: BigInt) {
     this.set("blocknumber", Value.fromBigInt(value));
+  }
+
+  get globalInfoCount(): BigDecimal {
+    let value = this.get("globalInfoCount");
+    return value!.toBigDecimal();
+  }
+
+  set globalInfoCount(value: BigDecimal) {
+    this.set("globalInfoCount", Value.fromBigDecimal(value));
   }
 
   get transactionHash(): Bytes {
@@ -137,13 +146,13 @@ export class _Claim extends Entity {
     this.set("to", Value.fromBytes(value));
   }
 
-  get currentDay(): BigInt {
-    let value = this.get("currentDay");
+  get plsdDay(): BigInt {
+    let value = this.get("plsdDay");
     return value!.toBigInt();
   }
 
-  set currentDay(value: BigInt) {
-    this.set("currentDay", Value.fromBigInt(value));
+  set plsdDay(value: BigInt) {
+    this.set("plsdDay", Value.fromBigInt(value));
   }
 
   get timestamp(): BigInt {
@@ -223,13 +232,13 @@ export class _Transfer extends Entity {
     this.set("value", Value.fromBigInt(value));
   }
 
-  get currentDay(): BigInt {
-    let value = this.get("currentDay");
+  get plsdDay(): BigInt {
+    let value = this.get("plsdDay");
     return value!.toBigInt();
   }
 
-  set currentDay(value: BigInt) {
-    this.set("currentDay", Value.fromBigInt(value));
+  set plsdDay(value: BigInt) {
+    this.set("plsdDay", Value.fromBigInt(value));
   }
 
   get timestamp(): BigInt {
