@@ -2,7 +2,7 @@ specVersion: 0.0.2
 description: PulseDogecoin subgraph for Ethereum
 repository: https://github.com/pulsedogecoin/pulsedogecoin-subgraph
 schema:
-  file: ./schema.graphql
+  file: schema.graphql
 dataSources:
   - kind: ethereum
     name: PulseDogecoin
@@ -20,7 +20,7 @@ dataSources:
         - Transfer
       abis:
         - name: PulseDogecoin
-          file: ./abis/PulseDogecoin.json
+          file: PulseDogecoin\abis\PulseDogecoin.json
       eventHandlers:
         - event: Approval(indexed address,indexed address,uint256)
           handler: handleApproval
@@ -28,4 +28,4 @@ dataSources:
           handler: handleClaim
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-      file: ./src/mapping.ts
+      file: PulseDogecoin\PulseDogecoin.wasm
